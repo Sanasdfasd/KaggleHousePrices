@@ -4,6 +4,7 @@
 # install.packages("randomForest",dependencies = TRUE)
 oldw <- getOption("warn")
 options(warn = -1)
+library(corrplot)
 library(stats)
 library(class)
 library(adabag)
@@ -14,7 +15,7 @@ library(rpart)
 
 checkNA <- function(myData){
   testNA <- apply(myData, MARGIN = 2, FUN = function(x) sum(is.na(x)))
-  
+
   for(i in 1:(ncol(myData)))
   {
     col <- myData[[i]]
@@ -44,7 +45,7 @@ preprocess <- function(data){
   }
 
   # for(i in 1:(ncol(b))){hist(b[[i]]) break; }
-
+  b <- subset(b, select=-c(LotShape, LotConfig, BsmtFullBath, X3SsnPorch, MiscFeature))
   return(b)
 
 }
@@ -52,14 +53,20 @@ preprocess <- function(data){
 
 rforest_function <- function(train, test) {
   # train$SalePrice <- as.factor(train$SalePrice)
-
-	model <- randomForest(SalePrice~., data=train, ntree = 500, importance = TRUE);
-  summary(model)
+  n <- floor(sqrt(ncol(train)))
+  print(n)
+	model <- randomForest(SalePrice~., data=train, ntree = 50, mtry = n, importance = TRUE)
+  # summary(model)
 
   SalePrice <- predict(model,test)
   Id <- test$Id
   result <- data.frame(Id, SalePrice)
   write.csv(result, "output.csv", row.names = F)
+
+  ActualSalePrice <- test$SalePrice
+  evaluation <- data.frame(result,ActualSalePrice, abs(SalePrice-ActualSalePrice))
+  write.csv(evaluation, "evaluation.csv", row.names = F)
+
 
 	# pred <- predict(model,newdata=test,type="response");
 	# print(pred)
@@ -74,24 +81,27 @@ rforest_function <- function(train, test) {
 }
 
 
-correlation_matrix <- function(bank)
+correlation_matrix <- function(data)
 {
-  b<-preprocess(bank)
-  vect<-colnames(b)
+  # b<-preprocess(data)
+  vect<-colnames(data)
   #library(corrplot)
-  print(ncol(b))
-  for(j in 1:ncol(b))
+  print(ncol(data))
+  for(j in 1:ncol(data))
   {
-    for(i in j:ncol(b))
+    for(i in j:ncol(data))
     {
 
-      s<-cor(b[[j]],b[[i]]);
+      s<-cor(data[[j]],data[[i]]);
       # print(vect[i])
       #print(s)
-      cat ("the correlation b/w attributes",vect[j],vect[i],s,"\n")
+      if(abs(s) <= 0.0002){
+        cat ("the correlation b/w attributes",vect[j],vect[i],s,"\n")
+      }
+
     }
   }
-  M<-cor(b)
+  M<-cor(data)
   corrplot(M,method = "number")
 
 }
@@ -102,15 +112,23 @@ correlation_matrix <- function(bank)
 # full_data <- read.csv("train.csv", header = TRUE, sep=",")
 
 train_data <- read.csv("train.csv", header = TRUE, sep=",")
-test_data <- read.csv("test.csv", header = TRUE, sep=",")
+test_data <- read.csv("test2.csv", header = TRUE, sep=",")
 
 #pre-process train data
+cat("No of cols before: ", ncol(train_data),"\n")
 train_data <- preprocess(train_data)
 train_data <- checkNA(train_data)
+cat("No of cols after: ", ncol(train_data),"\n")
+
+# correlation_matrix(train_data)
 
 #pre-process train data
+cat("No of cols before: ", ncol(test_data),"\n")
 test_data <- preprocess(test_data)
 test_data <- checkNA(test_data)
+cat("No of cols after: ", ncol(test_data),"\n")
+
+
 
 
 # #pre-processing
@@ -182,7 +200,7 @@ rforest_function(train_data,test_data)
 #     temp <- rforest_function(train_data,test_data)
 #     total_accuracy <- temp+total_accuracy;
 #   }
- 
+
 #   j<-j+sz_part
 #   steps <-steps+1;
 # }
