@@ -83,9 +83,10 @@ bagging_function <- function(train, test){
 print('In bagging');
  train$SalePrice <- as.factor(train$SalePrice);
  # control = rpart.control(maxdepth = 1)
-train_bagging <- bagging(SalePrice~., data=train, mfinal = 1, control = rpart.control(maxdepth = 1));
- # SalePrice <- predict(train_bagging, test);
- # Id <- test[[1]]
+ train_bagging <- bagging(SalePrice~., data=train, mfinal = 1, control = rpart.control(maxdepth = 1));
+ SalePrice <- predict.bagging(train_bagging, test);
+ Id <- test[[1]]
+ print(SalePrice)
  # result <- data.frame(Id, SalePrice)
  # write.csv(result,"bagging_output.csv",row.names = F)
  # out <- predict_bagging$confusion;
@@ -160,9 +161,9 @@ cat("No of cols after: ", ncol(test_data),"\n")
 
 
 
-# gradient_boosting_function(train_data, test_data)
+gradient_boosting_function(train_data, test_data)
 
-bagging_function(train_data,test_data)
+# bagging_function(train_data,test_data)
 
 
 # #pre-processing
